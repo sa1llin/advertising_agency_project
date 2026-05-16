@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
+
 from backend.utils.config import DATABASE_URL
+
 
 engine = create_engine(
     DATABASE_URL,
@@ -13,8 +15,10 @@ SessionLocal = sessionmaker(
     bind=engine,
 )
 
+Base = declarative_base()
+
+
 def get_db():
-    
     db = SessionLocal()
 
     try:
@@ -22,8 +26,8 @@ def get_db():
     finally:
         db.close()
 
-def check_database_connection() -> bool:
 
+def check_database_connection() -> bool:
     try:
         with engine.connect() as connection:
             connection.execute(text("select 1"))
