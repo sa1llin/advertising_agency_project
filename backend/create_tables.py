@@ -1,7 +1,11 @@
 from backend.database import Base, engine
-from backend import models  # noqa: F401
+from backend.models.client_model import Client
+
+
+def create_tables():
+    Base.metadata.create_all(bind=engine)
 
 
 if __name__ == "__main__":
-    Base.metadata.create_all(bind=engine)
-    print("Таблиці створено успішно.")
+    create_tables()
+    print("Таблиці створено успішно!")
