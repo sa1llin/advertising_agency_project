@@ -1,10 +1,12 @@
 from fastapi import Depends, FastAPI
+
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from backend.database import check_database_connection, get_db
 from backend.routers.clients_router import router as clients_router
 from backend.routers.orders_router import router as orders_router
+from backend.routers.calculator_router import router as calculator_router
 
 
 app = FastAPI(
@@ -15,6 +17,9 @@ app = FastAPI(
 
 app.include_router(clients_router)
 app.include_router(orders_router)
+app.include_router(calculator_router)
+
+
 
 @app.get("/")
 def root():
