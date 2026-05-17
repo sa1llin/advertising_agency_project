@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import check_database_connection, get_db
 from backend.routers.clients_router import router as clients_router
+from backend.routers.orders_router import router as orders_router
 
 
 app = FastAPI(
@@ -13,7 +14,7 @@ app = FastAPI(
 )
 
 app.include_router(clients_router)
-
+app.include_router(orders_router)
 
 @app.get("/")
 def root():
