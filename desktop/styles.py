@@ -202,6 +202,61 @@ MAIN_STYLE = """
         font-weight: 700;
     }
 
+    QLineEdit#searchInput {
+        min-height: 48px;
+        border-radius: 8px;
+        border: 1px solid #d9e1ec;
+        background-color: #ffffff;
+        padding-left: 8px;
+        padding-right: 12px;
+        color: #0b1635;
+        font-size: 14px;
+    }
+
+    QLineEdit#searchInput:focus {
+        border: 1px solid #ff6a00;
+    }
+
+    QLineEdit#searchInput::placeholder {
+        color: #7a8699;
+    }
+
+    QPushButton#filterButton,
+    QPushButton#secondaryButton {
+        min-height: 48px;
+        border-radius: 8px;
+        border: 1px solid #d9e1ec;
+        background-color: #ffffff;
+        color: #102a5e;
+        font-size: 14px;
+        font-weight: 700;
+        padding-left: 14px;
+        padding-right: 14px;
+        text-align: center;
+    }
+
+    QPushButton#filterButton:hover,
+    QPushButton#secondaryButton:hover {
+        border: 1px solid #ffb27a;
+        background-color: #fff8f3;
+    }
+
+    QPushButton#primaryButton {
+        min-height: 50px;
+        border: none;
+        border-radius: 8px;
+        background-color: #ff5c00;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 800;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    QPushButton#primaryButton:hover {
+        background-color: #e85300;
+    }
+
     QPushButton#actionButton:hover {
         color: #ff6a00;
     }

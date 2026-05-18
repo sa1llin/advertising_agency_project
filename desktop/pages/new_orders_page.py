@@ -30,3 +30,4 @@ class NewOrdersPage(QWidget):
 
         layout.addLayout(stats_grid)
         layout.addWidget(NewOrdersTable(), 1)
+

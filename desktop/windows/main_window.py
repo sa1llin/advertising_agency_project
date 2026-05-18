@@ -12,8 +12,11 @@ from PySide6.QtWidgets import (
 
 from config import SIDEBAR_WIDTH, WINDOW_MIN_HEIGHT, WINDOW_MIN_WIDTH
 from models.session import UserSession
+from pages.all_orders_page import AllOrdersPage
+from pages.clients_page import ClientsPage
 from pages.new_orders_page import NewOrdersPage
 from pages.placeholder_page import PlaceholderPage
+from pages.reports_page import ReportsPage
 from permissions import get_nav_items
 from styles import MAIN_STYLE
 from utils.icons import material_icon, material_pixmap
@@ -54,7 +57,6 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(24, 28, 24, 28)
         layout.setSpacing(18)
-
 
         user_icon = QLabel()
         user_icon.setFixedSize(54, 54)
@@ -132,6 +134,12 @@ class MainWindow(QMainWindow):
 
             if key == "new_orders":
                 page = NewOrdersPage()
+            elif key == "all_orders":
+                page = AllOrdersPage()
+            elif key == "clients":
+                page = ClientsPage()
+            elif key == "reports":
+                page = ReportsPage()
             else:
                 page = PlaceholderPage(title, subtitle)
 
