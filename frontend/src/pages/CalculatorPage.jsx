@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header/Header";
 import "./CalculatorPage.css";
 
@@ -96,6 +96,7 @@ function countDays(startDate, endDate) {
 
 function CalculatorPage() {
   const { serviceType } = useParams();
+  const navigate = useNavigate();
 
   const currentType = SERVICE_CONFIG[serviceType] ? serviceType : "billboard";
   const config = SERVICE_CONFIG[currentType];
@@ -198,11 +199,12 @@ function CalculatorPage() {
   function handleSubmit(event) {
     event.preventDefault();
 
-    alert(
-      `Заявку на прорахунок створено. Орієнтовна сума: ${formatMoney(
-        calculation.total
-      )}`
-    );
+    navigate("/contact", {
+      state: {
+        serviceType: currentType,
+        total: calculation.total,
+      },
+    });
   }
 
   return (

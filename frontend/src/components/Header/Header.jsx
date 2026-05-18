@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { images } from "../../assets/images";
 import "./Header.css";
 
@@ -16,9 +17,9 @@ function Header() {
 
   return (
     <header className="agency-header">
-      <a className="agency-header__logo" href="/">
+      <Link className="agency-header__logo" to="/">
         <img src={images.logo} alt="Creative Spark Agency" />
-      </a>
+      </Link>
 
       <nav
         className={
@@ -39,9 +40,9 @@ function Header() {
       </nav>
 
       <div className="agency-header__actions">
-        <a className="agency-header__external-link" href="#contacts">
+        <Link className="agency-header__external-link" to="/contact" aria-label="Відкрити форму зворотного зв'язку">
           ↗
-        </a>
+        </Link>
 
         <a className="agency-header__phone" href="tel:+3809999911">
           <span>(099) 999 11</span>
