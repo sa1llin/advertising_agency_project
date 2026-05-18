@@ -243,7 +243,7 @@
   }
 }
 
-@media (max-width: 480px) {
+  @media (max-width: 480px) {
   .media-showcase {
     padding-left: 16px;
     padding-right: 16px;
@@ -287,4 +287,25 @@
     width: 42px;
     height: 42px;
   }
+}
+
+.media-card-link,
+.media-card-link:visited,
+.media-card-link:hover,
+.media-card-link:active {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.media-card-link .media-card {
+  height: 100%;
+  cursor: pointer;
+}
+
+.media-card-link:focus-visible {
+  outline: 3px solid rgba(255, 74, 31, 0.45);
+  outline-offset: 6px;
+  border-radius: 22px;
 }

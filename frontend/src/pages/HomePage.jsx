@@ -13,6 +13,7 @@ function HomePage() {
       label: "OOH",
       image: images.oohImage,
       description: "Білборди та рекламні конструкції для розміщення зовнішньої реклами.",
+      calculatorPath: "/calculator/billboard",
     },
     {
       id: 2,
@@ -21,6 +22,7 @@ function HomePage() {
       label: "DOOH",
       image: images.doohImage,
       description: "LED-екрани для динамічного рекламного контенту.",
+      calculatorPath: "/calculator/led",
     },
     {
       id: 3,
@@ -29,6 +31,7 @@ function HomePage() {
       label: "PRINT",
       image: images.printImage,
       description: "Друкована продукція для бізнесу, подій та рекламних кампаній.",
+      calculatorPath: "/calculator/print",
     },
   ];
 
