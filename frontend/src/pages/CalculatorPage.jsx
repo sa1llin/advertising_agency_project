@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header/Header";
 import "./CalculatorPage.css";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 const SERVICE_CONFIG = {
   billboard: {
@@ -30,179 +33,287 @@ const SERVICE_CONFIG = {
   },
 };
 
-const SCREEN_SIZES = {
-  "3 × 6 м": 19000,
-  "4 × 8 м": 23500,
-  "5 × 10 м": 31000,
-};
+function isoDate(date) {
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
+}
 
-const LOCATIONS = {
-  "м. Харків, вул. Сумська, 45": 1500,
-  "м. Київ, просп. Перемоги, 21": 3000,
-  "м. Львів, вул. Городоцька, 12": 2200,
-};
-
-const VIDEO_DURATION_PRICES = {
-  5: 0,
-  10: 2500,
-  15: 4200,
-  30: 7900,
-};
-
-const PRINT_TYPES = {
-  Візитки: 7,
-  Флаєри: 5,
-  Буклети: 14,
-  Плакати: 45,
-};
-
-const PRINT_MATERIALS = {
-  "Крейдований папір": 1,
-  "Щільний картон": 1.35,
-  "Самоклеюча плівка": 1.8,
-  Банер: 2.3,
-};
-
-const PRINT_SIZES = {
-  "90 × 50 мм": 1,
-  A5: 1.4,
-  A4: 2,
-  A3: 3.4,
-};
-
-const PRINT_COLORS = {
-  "Чорно-білий": 0.75,
-  "Кольоровий 4+0": 1,
-  "Кольоровий 4+4": 1.35,
-};
+function initialDates() {
+  const start = new Date();
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  return {
+    startDate: isoDate(start),
+    endDate: isoDate(end),
+  };
+}
 
 function formatMoney(value) {
   return `${Math.round(value).toLocaleString("uk-UA")} грн`;
 }
 
 function countDays(startDate, endDate) {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return 1;
+    return 0;
   }
+  return Math.max(Math.round((end - start) / 86_400_000) + 1, 0);
+}
 
-  const difference = end - start;
-  const days = Math.ceil(difference / (1000 * 60 * 60 * 24));
-
-  return Math.max(days, 1);
+function findPrice(pricesByCategory, category, code) {
+  const items = pricesByCategory[category] || [];
+  return items.find((item) => item.code === code) || items[0];
 }
 
 function CalculatorPage() {
   const { serviceType } = useParams();
   const navigate = useNavigate();
-
   const currentType = SERVICE_CONFIG[serviceType] ? serviceType : "billboard";
   const config = SERVICE_CONFIG[currentType];
 
-  const [form, setForm] = useState({
-    screenSize: "3 × 6 м",
-    location: "м. Харків, вул. Сумська, 45",
-    startDate: "2024-05-20",
-    endDate: "2024-05-27",
+  const [catalog, setCatalog] = useState({
+    advertising_spaces: [],
+    pricing_items: [],
+  });
+  const [catalogError, setCatalogError] = useState("");
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+  const [form, setForm] = useState(() => ({
+    advertisingSpaceId: "",
+    ...initialDates(),
     videoDuration: 10,
     showCount: 100,
     needPosterPrint: false,
-
-    printType: "Візитки",
+    productType: "",
     printQuantity: 500,
-    printMaterial: "Крейдований папір",
-    printSize: "90 × 50 мм",
-    printColor: "Кольоровий 4+0",
-  });
+    materialCode: "",
+    sizeCode: "",
+    colorMode: "",
+  }));
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadCatalog() {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/catalog/public-order-options`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) {
+          throw new Error("Не вдалося завантажити ціни та рекламні площини.");
+        }
+        const payload = await response.json();
+        setCatalog(payload);
+        setCatalogError("");
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          setCatalogError(error.message || "Не вдалося завантажити каталог.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingCatalog(false);
+        }
+      }
+    }
+
+    loadCatalog();
+    return () => controller.abort();
+  }, []);
+
+  const spaces = useMemo(
+    () =>
+      catalog.advertising_spaces.filter(
+        (space) =>
+          space.space_type === (currentType === "print" ? "" : currentType),
+      ),
+    [catalog.advertising_spaces, currentType],
+  );
+
+  const pricesByCategory = useMemo(() => {
+    const result = {};
+    for (const item of catalog.pricing_items) {
+      if (!result[item.category]) {
+        result[item.category] = [];
+      }
+      result[item.category].push(item);
+    }
+    return result;
+  }, [catalog.pricing_items]);
+
+  const selectedSpace =
+    spaces.find(
+      (space) => String(space.id) === String(form.advertisingSpaceId),
+    ) || spaces[0];
   const days = countDays(form.startDate, form.endDate);
+
+  const selectedProduct = findPrice(
+    pricesByCategory,
+    "print_product",
+    form.productType,
+  );
+  const selectedMaterial = findPrice(
+    pricesByCategory,
+    "print_material",
+    form.materialCode,
+  );
+  const selectedSize = findPrice(
+    pricesByCategory,
+    "print_size",
+    form.sizeCode,
+  );
+  const selectedColor = findPrice(
+    pricesByCategory,
+    "print_color",
+    form.colorMode,
+  );
 
   const calculation = useMemo(() => {
     if (currentType === "billboard") {
-      const basePrice = SCREEN_SIZES[form.screenSize];
-      const locationPrice = LOCATIONS[form.location];
-      const periodPrice = days * 700;
-      const posterPrintPrice = form.needPosterPrint ? 3500 : 0;
-
+      if (!selectedSpace || days < 1) {
+        return { ready: false, rows: [], total: 0 };
+      }
+      const rental = Number(selectedSpace.base_price) * days;
+      const printItem = (pricesByCategory.billboard_print || []).find(
+        (item) => item.code === selectedSpace.size,
+      );
+      const printing = form.needPosterPrint
+        ? Number(printItem?.amount || 0)
+        : 0;
       return {
+        ready: true,
         rows: [
-          ["Базова вартість", basePrice],
-          [`Локація (${form.location})`, locationPrice],
-          [`Період розміщення (${days} днів)`, periodPrice],
-          ["Друк плаката", posterPrintPrice],
+          [`Оренда (${days} днів)`, rental],
+          ["Друк плаката", printing],
         ],
-        total: basePrice + locationPrice + periodPrice + posterPrintPrice,
+        total: rental + printing,
       };
     }
 
     if (currentType === "led") {
-      const basePrice = SCREEN_SIZES[form.screenSize];
-      const durationPrice = VIDEO_DURATION_PRICES[form.videoDuration];
-      const locationPrice = LOCATIONS[form.location];
-      const periodPrice = days * 250;
-      const showCountPrice = Math.max(form.showCount - 100, 0) * 12;
-
+      if (!selectedSpace || days < 1) {
+        return { ready: false, rows: [], total: 0 };
+      }
+      const placement =
+        Number(selectedSpace.base_price) *
+        days *
+        form.videoDuration *
+        form.showCount;
       return {
+        ready: true,
         rows: [
-          ["Базова вартість", basePrice],
-          [`Тривалість ролика (${form.videoDuration} сек)`, durationPrice],
-          [`Локація (${form.location})`, locationPrice],
-          [`Період розміщення (${days} днів)`, periodPrice],
-          [`Кількість показів (${form.showCount})`, showCountPrice],
+          [
+            `${form.videoDuration} сек × ${form.showCount} показів × ${days} днів`,
+            placement,
+          ],
         ],
-        total:
-          basePrice +
-          durationPrice +
-          locationPrice +
-          periodPrice +
-          showCountPrice,
+        total: placement,
       };
     }
 
-    const unitPrice = PRINT_TYPES[form.printType];
-    const materialMultiplier = PRINT_MATERIALS[form.printMaterial];
-    const sizeMultiplier = PRINT_SIZES[form.printSize];
-    const colorMultiplier = PRINT_COLORS[form.printColor];
-
-    const rawTotal =
-      unitPrice *
-      form.printQuantity *
-      materialMultiplier *
-      sizeMultiplier *
-      colorMultiplier;
-
-    const discount =
-      form.printQuantity >= 3000 ? 0.15 : form.printQuantity >= 1000 ? 0.1 : 0;
-
-    const discountAmount = rawTotal * discount;
-
+    const product = selectedProduct;
+    const material = selectedMaterial;
+    const size = selectedSize;
+    const color = selectedColor;
+    if (!product || !material || !size || !color || form.printQuantity < 1) {
+      return { ready: false, rows: [], total: 0 };
+    }
+    const rows = [
+      [product.label, Number(product.amount) * form.printQuantity],
+      [material.label, Number(material.amount) * form.printQuantity],
+      [size.label, Number(size.amount) * form.printQuantity],
+      [color.label, Number(color.amount) * form.printQuantity],
+    ];
     return {
-      rows: [
-        [`Тип продукції (${form.printType})`, unitPrice * form.printQuantity],
-        [`Матеріал (${form.printMaterial})`, rawTotal - unitPrice * form.printQuantity],
-        [`Кількість (${form.printQuantity} шт.)`, 0],
-        [`Знижка`, -discountAmount],
-      ],
-      total: rawTotal - discountAmount,
+      ready: true,
+      rows,
+      total: rows.reduce((sum, row) => sum + row[1], 0),
     };
-  }, [currentType, form, days]);
+  }, [
+    currentType,
+    days,
+    form.needPosterPrint,
+    form.printQuantity,
+    form.showCount,
+    form.videoDuration,
+    pricesByCategory,
+    selectedColor,
+    selectedMaterial,
+    selectedProduct,
+    selectedSpace,
+    selectedSize,
+  ]);
 
   function updateField(fieldName, value) {
-    setForm((previousForm) => ({
-      ...previousForm,
+    setForm((previous) => ({
+      ...previous,
       [fieldName]: value,
     }));
   }
 
+  function buildCalculationData() {
+    const priceRows = calculation.rows.map(([label, amount]) => ({
+      label,
+      amount,
+    }));
+
+    if (currentType === "billboard") {
+      return {
+        service_type: "billboard",
+        advertising_space_id: selectedSpace.id,
+        location: selectedSpace.location,
+        size: selectedSpace.size,
+        period_start: form.startDate,
+        period_end: form.endDate,
+        days,
+        need_printing: form.needPosterPrint,
+        estimated_total: calculation.total,
+        price_rows: priceRows,
+      };
+    }
+
+    if (currentType === "led") {
+      return {
+        service_type: "led",
+        advertising_space_id: selectedSpace.id,
+        location: selectedSpace.location,
+        size: selectedSpace.size,
+        period_start: form.startDate,
+        period_end: form.endDate,
+        days,
+        video_seconds: form.videoDuration,
+        impressions_per_day: form.showCount,
+        estimated_total: calculation.total,
+        price_rows: priceRows,
+      };
+    }
+
+    return {
+      service_type: "printing",
+      product_type: selectedProduct.code,
+      product_name: selectedProduct.label,
+      material_code: selectedMaterial.code,
+      material_name: selectedMaterial.label,
+      size_code: selectedSize.code,
+      size_name: selectedSize.label,
+      color_mode: selectedColor.code,
+      color_name: selectedColor.label,
+      quantity: form.printQuantity,
+      estimated_total: calculation.total,
+      price_rows: priceRows,
+    };
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
-
+    if (!calculation.ready) {
+      return;
+    }
     navigate("/contact", {
       state: {
+        source: "calculator",
         serviceType: currentType,
-        total: calculation.total,
+        calculationData: buildCalculationData(),
       },
     });
   }
@@ -218,7 +329,6 @@ function CalculatorPage() {
               <span className="calculator-star">✦</span>
               <span>{config.label}</span>
             </div>
-
             <h1>{config.title}</h1>
             <p>{config.subtitle}</p>
           </div>
@@ -230,14 +340,12 @@ function CalculatorPage() {
             >
               Білборди
             </Link>
-
             <Link
               className={currentType === "led" ? "active" : ""}
               to="/calculator/led"
             >
               LED
             </Link>
-
             <Link
               className={currentType === "print" ? "active" : ""}
               to="/calculator/print"
@@ -254,19 +362,33 @@ function CalculatorPage() {
               <h2>Параметри розміщення</h2>
             </div>
 
+            {isLoadingCatalog && (
+              <p className="calculator-security">Завантаження цін з БД...</p>
+            )}
+            {catalogError && (
+              <p className="calculator-security">{catalogError}</p>
+            )}
+
             {currentType !== "print" && (
               <>
                 <label className="calculator-field">
-                  <span>{currentType === "billboard" ? "Розмір білборда" : "Розмір екрана"}</span>
+                  <span>
+                    {currentType === "billboard"
+                      ? "Адреса білборда"
+                      : "Адреса LED-екрана"}
+                  </span>
                   <select
-                    value={form.screenSize}
+                    value={selectedSpace?.id || ""}
                     onChange={(event) =>
-                      updateField("screenSize", event.target.value)
+                      updateField(
+                        "advertisingSpaceId",
+                        Number(event.target.value),
+                      )
                     }
                   >
-                    {Object.keys(SCREEN_SIZES).map((size) => (
-                      <option key={size} value={size}>
-                        {size}
+                    {spaces.map((space) => (
+                      <option key={space.id} value={space.id}>
+                        {space.location} ({space.size || "розмір не вказано"})
                       </option>
                     ))}
                   </select>
@@ -274,7 +396,6 @@ function CalculatorPage() {
 
                 <div className="calculator-field">
                   <span>Період бронювання</span>
-
                   <div className="calculator-date-row">
                     <input
                       type="date"
@@ -283,11 +404,10 @@ function CalculatorPage() {
                         updateField("startDate", event.target.value)
                       }
                     />
-
                     <span className="date-divider">—</span>
-
                     <input
                       type="date"
+                      min={form.startDate}
                       value={form.endDate}
                       onChange={(event) =>
                         updateField("endDate", event.target.value)
@@ -295,22 +415,6 @@ function CalculatorPage() {
                     />
                   </div>
                 </div>
-
-                <label className="calculator-field">
-                  <span>Локація</span>
-                  <select
-                    value={form.location}
-                    onChange={(event) =>
-                      updateField("location", event.target.value)
-                    }
-                  >
-                    {Object.keys(LOCATIONS).map((location) => (
-                      <option key={location} value={location}>
-                        {location}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </>
             )}
 
@@ -331,7 +435,6 @@ function CalculatorPage() {
               <>
                 <div className="calculator-field">
                   <span>Тривалість ролика</span>
-
                   <div className="calculator-segmented">
                     {[5, 10, 15, 30].map((seconds) => (
                       <button
@@ -347,12 +450,12 @@ function CalculatorPage() {
                     ))}
                   </div>
                 </div>
-
                 <label className="calculator-field">
-                  <span>Кількість показів</span>
+                  <span>Кількість показів на день</span>
                   <input
                     type="number"
                     min="1"
+                    max="100000"
                     value={form.showCount}
                     onChange={(event) =>
                       updateField("showCount", Number(event.target.value))
@@ -364,88 +467,51 @@ function CalculatorPage() {
 
             {currentType === "print" && (
               <>
-                <label className="calculator-field">
-                  <span>Тип продукції</span>
-                  <select
-                    value={form.printType}
-                    onChange={(event) =>
-                      updateField("printType", event.target.value)
-                    }
-                  >
-                    {Object.keys(PRINT_TYPES).map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
+                <PriceSelect
+                  label="Тип продукції"
+                  items={pricesByCategory.print_product || []}
+                  value={selectedProduct?.code || ""}
+                  onChange={(value) => updateField("productType", value)}
+                />
                 <label className="calculator-field">
                   <span>Кількість</span>
                   <input
                     type="number"
                     min="1"
+                    max="1000000"
                     value={form.printQuantity}
                     onChange={(event) =>
                       updateField("printQuantity", Number(event.target.value))
                     }
                   />
                 </label>
-
-                <label className="calculator-field">
-                  <span>Матеріал</span>
-                  <select
-                    value={form.printMaterial}
-                    onChange={(event) =>
-                      updateField("printMaterial", event.target.value)
-                    }
-                  >
-                    {Object.keys(PRINT_MATERIALS).map((material) => (
-                      <option key={material} value={material}>
-                        {material}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="calculator-field">
-                  <span>Розмір</span>
-                  <select
-                    value={form.printSize}
-                    onChange={(event) =>
-                      updateField("printSize", event.target.value)
-                    }
-                  >
-                    {Object.keys(PRINT_SIZES).map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="calculator-field">
-                  <span>Кольоровість</span>
-                  <select
-                    value={form.printColor}
-                    onChange={(event) =>
-                      updateField("printColor", event.target.value)
-                    }
-                  >
-                    {Object.keys(PRINT_COLORS).map((color) => (
-                      <option key={color} value={color}>
-                        {color}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <PriceSelect
+                  label="Матеріал"
+                  items={pricesByCategory.print_material || []}
+                  value={selectedMaterial?.code || ""}
+                  onChange={(value) => updateField("materialCode", value)}
+                />
+                <PriceSelect
+                  label="Розмір"
+                  items={pricesByCategory.print_size || []}
+                  value={selectedSize?.code || ""}
+                  onChange={(value) => updateField("sizeCode", value)}
+                />
+                <PriceSelect
+                  label="Кольоровість"
+                  items={pricesByCategory.print_color || []}
+                  value={selectedColor?.code || ""}
+                  onChange={(value) => updateField("colorMode", value)}
+                />
               </>
             )}
 
             <div className="calculator-days-row">
               <span>{currentType === "print" ? "Формат" : "Кількість днів"}</span>
               <strong>
-                {currentType === "print" ? form.printSize : `${days} днів`}
+                {currentType === "print"
+                  ? selectedSize?.label || "—"
+                  : `${days} днів`}
               </strong>
             </div>
 
@@ -459,17 +525,21 @@ function CalculatorPage() {
             </div>
 
             <div className="calculator-total">
-              <span>Підсумкова вартість</span>
+              <span>Орієнтовна вартість</span>
               <strong>{formatMoney(calculation.total)}</strong>
             </div>
 
-            <button className="calculator-submit" type="submit">
+            <button
+              className="calculator-submit"
+              type="submit"
+              disabled={!calculation.ready}
+            >
               Замовити прорахунок
               <span>→</span>
             </button>
 
             <p className="calculator-security">
-              Ваші дані захищені та не передаються третім особам
+              Остаточну суму перерахує менеджер за актуальними цінами БД
             </p>
           </form>
 
@@ -477,55 +547,67 @@ function CalculatorPage() {
             <div className={`calculator-visual ${config.previewClass}`}>
               <div className="visual-object" />
             </div>
-
             <div className="preview-info">
               <span className="preview-label">{config.previewTitle}</span>
-
               <h2>
                 {currentType === "print"
-                  ? `${form.printType}, ${form.printQuantity} шт.`
-                  : form.location}
+                  ? `${selectedProduct?.label || "—"}, ${form.printQuantity} шт.`
+                  : selectedSpace?.location || "Оберіть рекламну площину"}
               </h2>
-
-                <div className="preview-tags">
-                    {currentType === "billboard" && (
-                        <>
-                        <span>Розмір: {form.screenSize}</span>
-                        <span>
-                            {form.startDate} — {form.endDate} ({days} днів)
-                        </span>
-                        </>
-                    )}
-
-                    {currentType === "led" && (
-                        <>
-                        <span>Розмір: {form.screenSize}</span>
-                        <span>Тривалість: {form.videoDuration} сек</span>
-                        <span>Показів: {form.showCount}</span>
-                        <span>
-                            {form.startDate} — {form.endDate} ({days} днів)
-                        </span>
-                        </>
-                    )}
-
-                    {currentType === "print" && (
-                        <>
-                        <span>Матеріал: {form.printMaterial}</span>
-                        <span>Розмір: {form.printSize}</span>
-                        <span>Колір: {form.printColor}</span>
-                        </>
-                    )}
-                </div>
-
+              <div className="preview-tags">
+                {currentType === "billboard" && selectedSpace && (
+                  <>
+                    <span>Розмір: {selectedSpace.size || "—"}</span>
+                    <span>
+                      {form.startDate} — {form.endDate} ({days} днів)
+                    </span>
+                    <span>
+                      Друк плаката: {form.needPosterPrint ? "так" : "ні"}
+                    </span>
+                  </>
+                )}
+                {currentType === "led" && selectedSpace && (
+                  <>
+                    <span>Розмір: {selectedSpace.size || "—"}</span>
+                    <span>Тривалість: {form.videoDuration} сек</span>
+                    <span>Показів на день: {form.showCount}</span>
+                    <span>
+                      {form.startDate} — {form.endDate} ({days} днів)
+                    </span>
+                  </>
+                )}
+                {currentType === "print" && (
+                  <>
+                    <span>Матеріал: {selectedMaterial?.label || "—"}</span>
+                    <span>Розмір: {selectedSize?.label || "—"}</span>
+                    <span>Колір: {selectedColor?.label || "—"}</span>
+                  </>
+                )}
+              </div>
               <p className="preview-note">
-                Зображення є ілюстративним. Остаточну суму підтвердить менеджер
-                після уточнення деталей замовлення.
+                Параметри цього калькулятора будуть передані менеджеру разом із
+                заявкою та не змішуватимуться з іншими типами послуг.
               </p>
             </div>
           </aside>
         </section>
       </main>
     </div>
+  );
+}
+
+function PriceSelect({ label, items, value, onChange }) {
+  return (
+    <label className="calculator-field">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {items.map((item) => (
+          <option key={item.code} value={item.code}>
+            {item.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

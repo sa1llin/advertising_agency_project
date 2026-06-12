@@ -38,6 +38,7 @@
 
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, Numeric, String, Text, func
+from sqlalchemy.orm import relationship
 
 from backend.database import Base
 
@@ -64,3 +65,32 @@ class AdvertisingSpace(Base):
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    order_segments = relationship("OrderSegment", back_populates="advertising_space")
+
+
+class PricingItem(Base):
+    __tablename__ = "pricing_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    category = Column(String(50), nullable=False, index=True)
+    code = Column(String(60), nullable=False, index=True)
+    label = Column(String(120), nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False, default=0)
+    unit_name = Column(String(50), nullable=False, default="unit")
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    __table_args__ = (
+        {
+            "mysql_engine": "InnoDB",
+            "mysql_charset": "utf8mb4",
+        },
+    )

@@ -149,6 +149,7 @@
 }
 
 .contact-field input,
+.contact-field select,
 .contact-field textarea {
   width: 100%;
   color: #121827;
@@ -166,6 +167,12 @@
   padding: 0 22px;
 }
 
+.contact-field select {
+  height: 66px;
+  padding: 0 22px;
+  cursor: pointer;
+}
+
 .contact-field textarea {
   min-height: 150px;
   padding: 26px 22px;
@@ -178,6 +185,7 @@
 }
 
 .contact-field input:focus,
+.contact-field select:focus,
 .contact-field textarea:focus {
   border-color: rgba(255, 61, 21, 0.62);
   background: #ffffff;
@@ -206,38 +214,41 @@
 }
 
 .contact-form__bottom {
-  display: grid;
-  grid-template-columns: minmax(320px, 1fr) 390px;
+  display: flex;
   align-items: center;
-  gap: 36px;
+  justify-content: flex-end;
   padding-top: 26px;
 }
 
-.contact-consent {
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  align-items: start;
-  gap: 26px;
-  color: #172033;
-  font-size: 21px;
-  line-height: 1.5;
+.contact-form__status {
+  margin: 18px 0 0;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 700;
 }
 
-.contact-consent input {
-  width: 34px;
-  height: 34px;
-  margin-top: 5px;
-  accent-color: #ff3d15;
-  cursor: pointer;
+.contact-form__calculation-note {
+  margin: 14px 0 0 182px;
+  color: #42526a;
+  font-size: 16px;
+  line-height: 1.45;
 }
 
-.contact-consent a {
-  color: inherit;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
+.contact-form__status--success {
+  color: #17633a;
+  background: #eaf8f0;
+  border: 1px solid #b9e6ca;
+}
+
+.contact-form__status--error {
+  color: #9f2412;
+  background: #fff0ed;
+  border: 1px solid #ffc9bd;
 }
 
 .contact-submit {
+  width: min(390px, 100%);
   min-height: 78px;
   border: 0;
   border-radius: 999px;
@@ -257,6 +268,12 @@
 .contact-submit:hover {
   transform: translateY(-2px);
   box-shadow: 0 22px 48px rgba(255, 61, 21, 0.34);
+}
+
+.contact-submit:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
 }
 
 .contact-submit span {
@@ -298,9 +315,12 @@
     top: 62px;
   }
 
+  .contact-form__calculation-note {
+    margin-left: 0;
+  }
+
   .contact-form__bottom {
-    grid-template-columns: 1fr;
-    gap: 26px;
+    display: flex;
   }
 
   .contact-submit {
@@ -348,11 +368,17 @@
   }
 
   .contact-field input,
+  .contact-field select,
   .contact-field textarea {
     font-size: 17px;
   }
 
   .contact-field input {
+    height: 58px;
+    padding: 0 16px;
+  }
+
+  .contact-field select {
     height: 58px;
     padding: 0 16px;
   }
@@ -366,17 +392,6 @@
     right: 16px;
     top: 58px;
     font-size: 13px;
-  }
-
-  .contact-consent {
-    grid-template-columns: 28px 1fr;
-    gap: 14px;
-    font-size: 16px;
-  }
-
-  .contact-consent input {
-    width: 28px;
-    height: 28px;
   }
 
   .contact-submit {

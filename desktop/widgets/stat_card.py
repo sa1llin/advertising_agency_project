@@ -1,15 +1,18 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
 from utils.icons import material_pixmap
 
 
 class StatCard(QFrame):
+    clicked = Signal()
+
     def __init__(self, icon_name: str, title: str, value: str, accent: bool = False):
         super().__init__()
 
         self.setObjectName("statCard")
         self.setMinimumHeight(104)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(18, 18, 18, 18)
@@ -24,30 +27,40 @@ class StatCard(QFrame):
         icon_label.setPixmap(material_pixmap(icon_name, icon_color, 30))
 
         if accent:
-            icon_label.setStyleSheet(
-                """
+            icon_label.setStyleSheet("""
                 QLabel {
                     background-color: #fff0df;
                     border-radius: 14px;
                 }
-                """
-            )
+                """)
 
         text_layout = QVBoxLayout()
         text_layout.setSpacing(2)
 
         title_label = QLabel(title)
         title_label.setObjectName("statTitle")
+        self.title_label = title_label
 
-        value_label = QLabel(value)
-        value_label.setObjectName("statValue")
+        self.value_label = QLabel(value)
+        self.value_label.setObjectName("statValue")
 
         if accent:
-            value_label.setStyleSheet("color: #ff6a00;")
+            self.value_label.setStyleSheet("color: #ff6a00;")
 
         text_layout.addWidget(title_label)
-        text_layout.addWidget(value_label)
+        text_layout.addWidget(self.value_label)
 
         layout.addWidget(icon_label)
         layout.addLayout(text_layout)
         layout.addStretch()
+
+    def set_value(self, value: int | str) -> None:
+        self.value_label.setText(str(value))
+
+    def set_title(self, title: str) -> None:
+        self.title_label.setText(title)
+
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mouseReleaseEvent(event)

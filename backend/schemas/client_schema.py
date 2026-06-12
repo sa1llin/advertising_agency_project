@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ClientType = Literal["individual", "fop", "company"]
 
@@ -18,9 +17,40 @@ class ClientBase(BaseModel):
     comment: str | None = None
     is_active: bool = True
 
+    @field_validator(
+        "full_name",
+        "company_name",
+        "phone",
+        "email",
+        "legal_address",
+        "tax_number",
+        "comment",
+        mode="before",
+    )
+    @classmethod
+    def strip_text_fields(cls, value):
+        if not isinstance(value, str):
+            return value
+        normalized = value.strip()
+        return normalized or None
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str | None) -> str | None:
+        return value.lower() if value else value
+
 
 class ClientCreate(ClientBase):
-    pass
+    @model_validator(mode="after")
+    def validate_organization_fields(self):
+        if self.client_type in ("fop", "company"):
+            if not self.company_name:
+                raise ValueError("Для ФОП або юридичної особи потрібно вказати назву")
+            if not self.legal_address:
+                raise ValueError(
+                    "Для ФОП або юридичної особи потрібно вказати юридичну адресу"
+                )
+        return self
 
 
 class ClientUpdate(BaseModel):

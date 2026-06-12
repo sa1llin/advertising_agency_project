@@ -23,11 +23,11 @@ class PlaceholderPage(QWidget):
         card_layout = QVBoxLayout(card)
         card_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        message = QLabel("Розділ буде реалізовано на наступному етапі")
-        message.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # message = QLabel("Розділ буде реалізовано на наступному етапі")
+        # message.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        # message.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        card_layout.addWidget(message)
+        # card_layout.addWidget(message)
 
         layout.addWidget(title)
         layout.addWidget(subtitle)

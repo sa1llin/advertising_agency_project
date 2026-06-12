@@ -124,6 +124,12 @@ class Order(Base):
     manager = relationship("User", back_populates="orders")
     service = relationship("Service", back_populates="orders")
     payments = relationship("Payment", back_populates="order", cascade="all, delete-orphan")
+    segments = relationship(
+        "OrderSegment",
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="OrderSegment.sequence",
+    )
 
     __table_args__ = (
         CheckConstraint(

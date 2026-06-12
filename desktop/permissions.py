@@ -1,7 +1,7 @@
 NAV_ITEMS = [
     {
         "key": "new_orders",
-        "title": "Нові замовлення",
+        "title": "Нові заявки",
         "subtitle": "Заявки на зворотний зв’язок, що надійшли з сайту",
         "icon": "assignment",
         "roles": ["admin", "manager"],
